@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Audio Vectorscope</title>
+  <style>
+    :root{--bg:#0b0f14;--ui:#0f1720;--accent:#38bdf8;background:#000;}
+    html,body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    body{display:flex;flex-direction:column;gap:12px;background:linear-gradient(180deg,#071017 0%, rgba(7,16,23,0.6) 60%);color:#cbd5e1}
+    header{display:flex;align-items:center;gap:12px}
+    h1{font-size:18px;margin:0}
+    .controls{
+      position: fixed;
+      align-self: center;
+      height: -webkit-fill-available;
+      padding:6px;
+      transition: .25s all;
+      display:flex;gap:8px;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: .1;
+    }
+    select,input,button{background:var(--ui);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px;border-radius:8px}
+    canvas{
+      position: fixed;
+      max-width: -webkit-fill-available;
+      max-height: -webkit-fill-available;
+      aspect-ratio: 1;
+      align-self: center;
+      z-index: -1;
+      border-radius:0;box-shadow:0 8px 30px rgba(2,6,23,0.6);background:radial-gradient(circle at 30% 20%, rgba(56,189,248,0.03), transparent 10%), linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
+    .row{display:flex;gap:8px;align-items:center}
+    label{font-size:13px;color:#94a3b8}
+    .small{font-size:12px;color:#94a3b8}
+    footer{margin-top:6px;font-size:13px;color:#94a3b8}
+    .sl{width:140px}
+  </style>
+</head>
+<body>
+
+  <section class="controls">
+
+    <div class="row">
+      <label for="persistence">Persistence</label>
+      <input id="persistence" type="range" min="0" max="1" step="0.01" value="0" class="sl">
+    </div>
+
+    <div class="row">
+      <label for="zoom">Zoom</label>
+      <input id="zoom" type="range" min="0.2" max="3" step="0.01" value="1.4" class="sl">
+    </div>
+
+    <div class="row small">
+      <input id="file" type="file" accept="audio/*, video/*" style="display:none">
+    </div>
+  <audio controls loop dropzone="body"></audio>
+  </section>
+
+  <canvas id="canvas" width="1200" height="1200"></canvas>
+
+  <script>
+  const overlay=document.createElement('div');
+  document.querySelector("html").appendChild(overlay);
+  overlay.style=`position:fixed;top:0;left:0;right:0;bottom:0;background-color:rgba(0,0,0,.7);z-index:99999;text-align:center;align-content:center;opacity:.3`
+  overlay.style.display='none';
+  window.onmouseover=e=>controls.style.opacity=.7;
+  window.onmouseout=e=>controls.style.opacity=0;
+  window.ondragover=e=>{
+    e.preventDefault()
+    const x=e.x-(window.innerWidth/2);
+    const y=e.y-(window.innerHeight/2);
+    const items=e.dataTransfer.items;
+    overlay.style.display=null;
+    if(items[1]){
+      overlay.style.boxShadow=`${x/(window.innerWidth/40)}px ${y/(window.innerHeight/40)}px 0 20px #ff6464 inset`;
+      overlay.innerText='One Audio/Video file at a time';
+    }else
+    if(items[0]){
+      console.log(items[0].type)
+      overlay.style.display=null;
+      if((items[0].type.startsWith('audio')||items[0].type.startsWith('video'))&&items[0].kind=='file'){
+        overlay.innerText=items[0].type
+        overlay.style.boxShadow=`${x/(window.innerWidth/40)}px ${y/(window.innerHeight/40)}px 0 20px #0064ff inset`;
+      }else{
+        overlay.innerText=items[0].type
+        overlay.style.boxShadow=`${x/(window.innerWidth/40)}px ${y/(window.innerHeight/40)}px 0 20px #ff6464 inset`;
+      }
+    }
+  };
+  window.ondragleave=function(e){
+    e.preventDefault();if(e.fromElement)return;
+    overlay.style.display='none';
+  }
+  window.ondrop=function(e){
+    e.preventDefault();
+    overlay.style.display='none';
+    const files=e.dataTransfer.files;
+    if(files[1])return alert('One Audio/Video file at a time');
+    var f = files[0];
+    if(f){
+      if(!(f.type.startsWith('audio')||f.type.startsWith('video')))return alert('Incorrect file type');
+      fileInput.files=files;fileInput.dispatchEvent(new Event('change'));
+    }
+  }
+
+    const controls=document.querySelector(".controls");
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('file');
+    const persistenceSlider = document.getElementById('persistence');
+    const zoomSlider = document.getElementById('zoom');
+
+    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();//null;
+    let sourceNode = null;
+    let splitter = null;
+    let analyserL = null, analyserR = null;
+    let dataL = null, dataR = null;
+    let rafId = null;
+    let mediaStream = null;
+    let audioElement = document.querySelector('audio');
+
+      sourceNode = audioCtx.createMediaElementSource(audioElement);
+
+      splitter = audioCtx.createChannelSplitter(2);
+      analyserL = audioCtx.createAnalyser();
+      analyserR = audioCtx.createAnalyser();
+      analyserL.fftSize = 2048;
+      analyserR.fftSize = 2048;
+      const bufferLen = analyserL.fftSize;
+      dataL = new Float32Array(bufferLen);
+      dataR = new Float32Array(bufferLen);
+      sourceNode.connect(splitter);
+      splitter.connect(analyserL, 0);
+      splitter.connect(analyserR, 1);
+      const outGain = audioCtx.createGain();
+      outGain.gain.value = 1;
+      sourceNode.connect(outGain);
+      outGain.connect(audioCtx.destination);
+
+    document.body.addEventListener('click', () => {
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    });
+
+    function createSampleNode(ctx){
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 220;
+      const merger = ctx.createChannelMerger(2);
+      osc.connect(gain);
+      gain.gain.value = 0.5;
+      gain.connect(merger, 0, 0);
+      gain.connect(merger, 0, 1);
+      osc.start();
+      return {node: merger, osc, gain};
+    }
+
+    async function start(){
+      if(!audioCtx){
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+        if(!fileInput.files[0]){ return; }
+        audioElement.src = URL.createObjectURL(fileInput.files[0]);
+        try {
+          await audioElement.play();
+        } catch(e) {
+          console.warn('Autoplay blocked, please click play:', e);
+        }
+
+      draw();
+    }
+
+    function stop(){
+      if(rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+      if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream = null; }
+      if(audioCtx){ audioCtx.close(); audioCtx = null; }
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+
+    function draw(){
+      if(!analyserL || !analyserR) return;
+      rafId = requestAnimationFrame(draw);
+      analyserL.getFloatTimeDomainData(dataL);
+      analyserR.getFloatTimeDomainData(dataR);
+      const w = canvas.width, h = canvas.height, cx = w/2, cy = h/2;
+      ctx.fillStyle = 'rgba(2,6,11,' + (1 - parseFloat(persistenceSlider.value)) + ')';
+      ctx.fillRect(0,0,w,h);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.beginPath();
+      const zoom = parseFloat(zoomSlider.value) * Math.min(w,h)/3;
+      const len = Math.min(dataL.length, dataR.length);
+      for(let i=0;i<len;i+=2){
+        let x = dataL[i]; let y = dataR[i];
+        const px = x * zoom, py = -y * zoom;
+        if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      const rmsL = computeRMS(dataL), rmsR = computeRMS(dataR);
+      const hue = Math.floor(200 + 80 * (rmsL - rmsR));
+      ctx.strokeStyle = `hsl(${hue} 90% 50% / 0.9)`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(200,220,255,0.06)';
+      ctx.fillRect(-1,-1,2,2);
+      ctx.restore();
+    }
+
+    function computeRMS(buf){
+      let sum = 0; for(let i=0;i<buf.length;i++){ const v = buf[i]; sum += v*v; } return Math.sqrt(sum / buf.length);
+    }
+
+    fileInput.addEventListener('change',start);
+    fileInput.style.display='inline-block';
+
+    function resizeCanvas(){
+      const ratio = window.devicePixelRatio || 1; const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.round(window.innerHeight * ratio);
+      canvas.height = Math.round(window.innerHeight * ratio);
+      ctx.setTransform(ratio,0,0,ratio,0,0); ctx.fillStyle = 'rgba(2,6,11,1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+    window.addEventListener('keydown', e=>{ if(e.key===' '){ e.preventDefault(); if(!audioElement.paused) audioElement.pause(); else audioElement.play(); } });
+  </script>
+</body>
+</html>
