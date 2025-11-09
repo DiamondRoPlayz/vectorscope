@@ -11,9 +11,8 @@
     header{display:flex;align-items:center;gap:12px}
     h1{font-size:18px;margin:0}
     .controls{
+      place-self: anchor-center;
       position: fixed;
-      align-self: center;
-      height: -webkit-fill-available;
       padding:6px;
       transition: .25s all;
       display:flex;gap:8px;
@@ -24,11 +23,11 @@
     }
     select,input,button{background:var(--ui);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px;border-radius:8px}
     canvas{
+      place-self: anchor-center;
       position: fixed;
       max-width: -webkit-fill-available;
       max-height: -webkit-fill-available;
       aspect-ratio: 1;
-      align-self: center;
       z-index: -1;
       border-radius:0;box-shadow:0 8px 30px rgba(2,6,23,0.6);background:radial-gradient(circle at 30% 20%, rgba(56,189,248,0.03), transparent 10%), linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
     .row{display:flex;gap:8px;align-items:center}
@@ -65,8 +64,6 @@
   document.querySelector("html").appendChild(overlay);
   overlay.style=`position:fixed;top:0;left:0;right:0;bottom:0;background-color:rgba(0,0,0,.7);z-index:99999;text-align:center;align-content:center;opacity:.3`
   overlay.style.display='none';
-  window.onmouseover=e=>controls.style.opacity=.7;
-  window.onmouseout=e=>controls.style.opacity=0;
   window.ondragover=e=>{
     e.preventDefault()
     const x=e.x-(window.innerWidth/2);
@@ -111,6 +108,10 @@
     const fileInput = document.getElementById('file');
     const persistenceSlider = document.getElementById('persistence');
     const zoomSlider = document.getElementById('zoom');
+
+    canvas.onmouseover=e=>controls.style.opacity=.3;
+    controls.onmouseover=e=>controls.style.opacity=.7;
+    canvas.onmouseout=controls.onmouseout=e=>controls.style.opacity=0;
 
     let audioCtx = new (window.AudioContext || window.webkitAudioContext)();//null;
     let sourceNode = null;
