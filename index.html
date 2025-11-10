@@ -174,7 +174,7 @@
           console.warn('Autoplay blocked, please click play:', e);
         }
 
-      draw();
+      //draw();
     }
 
     function stop(){
@@ -229,7 +229,7 @@
     window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
     window.addEventListener('keydown', e=>{ if(e.key===' '){ e.preventDefault(); if(!audioElement.paused) audioElement.pause(); else audioElement.play(); } });
-    start()
+    draw();//start()
   </script>
 </body>
 </html>
