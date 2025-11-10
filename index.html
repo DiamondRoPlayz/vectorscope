@@ -29,7 +29,10 @@
       max-height: -webkit-fill-available;
       aspect-ratio: 1;
       z-index: -1;
-      border-radius:0;box-shadow:0 8px 30px rgba(2,6,23,0.6);background:radial-gradient(circle at 30% 20%, rgba(56,189,248,0.03), transparent 10%), linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
+      border-radius:0;
+      /* box-shadow:0 8px 30px rgba(2,6,23,0.6); */
+      box-shadow: 0 0 60px 20px rgba(2, 6, 23, 0.6);
+      background:radial-gradient(circle at 30% 20%, rgba(56,189,248,0.03), transparent 10%), linear-gradient(180deg, rgba(255,255,255,0.02), transparent)}
     .row{display:flex;gap:8px;align-items:center}
     label{font-size:13px;color:#94a3b8}
     .small{font-size:12px;color:#94a3b8}
@@ -54,7 +57,7 @@
     <div class="row small">
       <input id="file" type="file" accept="audio/*, video/*" style="display:none">
     </div>
-  <audio controls loop dropzone="body"></audio>
+  <audio controls loop dropzone="body"src='Jerobeam Fenderson - Function.mp3'></audio>
   </section>
 
   <canvas id="canvas" width="1200" height="1200"></canvas>
@@ -163,8 +166,8 @@
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
 
-        if(!fileInput.files[0]){ return; }
-        audioElement.src = URL.createObjectURL(fileInput.files[0]);
+        if(!fileInput.files[0]&&!audioElement.src){ return; }
+        audioElement.src = fileInput.files[0]?URL.createObjectURL(fileInput.files[0]):audioElement.src;
         try {
           await audioElement.play();
         } catch(e) {
@@ -226,6 +229,7 @@
     window.addEventListener('resize', resizeCanvas); resizeCanvas();
 
     window.addEventListener('keydown', e=>{ if(e.key===' '){ e.preventDefault(); if(!audioElement.paused) audioElement.pause(); else audioElement.play(); } });
+    start()
   </script>
 </body>
 </html>
