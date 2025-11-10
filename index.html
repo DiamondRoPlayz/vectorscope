@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Audio Vectorscope</title>
   <style>
     :root{--bg:#0b0f14;--ui:#0f1720;--accent:#38bdf8;background:#000;}
@@ -18,8 +18,8 @@
       display:flex;gap:8px;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      opacity: .1;
+      flex-direction:column;
+      opacity:.1;
     }
     select,input,button{background:var(--ui);border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px;border-radius:8px}
     canvas{
@@ -41,19 +41,15 @@
   </style>
 </head>
 <body>
-
   <section class="controls">
-
     <div class="row">
       <label for="persistence">Persistence</label>
       <input id="persistence" type="range" min="0" max="1" step="0.01" value="0" class="sl">
     </div>
-
     <div class="row">
       <label for="zoom">Zoom</label>
       <input id="zoom" type="range" min="0.2" max="3" step="0.01" value="1.4" class="sl">
     </div>
-
     <div class="row small">
       <input id="file" type="file" accept="audio/*, video/*" style="display:none">
     </div>
@@ -78,13 +74,13 @@
       overlay.innerText='One Audio/Video file at a time';
     }else
     if(items[0]){
-      console.log(items[0].type)
+      console.log(items[0].type);
       overlay.style.display=null;
       if((items[0].type.startsWith('audio')||items[0].type.startsWith('video'))&&items[0].kind=='file'){
-        overlay.innerText=items[0].type
+        overlay.innerText=items[0].type;
         overlay.style.boxShadow=`${x/(window.innerWidth/40)}px ${y/(window.innerHeight/40)}px 0 20px #0064ff inset`;
       }else{
-        overlay.innerText=items[0].type
+        overlay.innerText=items[0].type;
         overlay.style.boxShadow=`${x/(window.innerWidth/40)}px ${y/(window.innerHeight/40)}px 0 20px #ff6464 inset`;
       }
     }
@@ -106,87 +102,77 @@
   }
 
     const controls=document.querySelector(".controls");
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const fileInput = document.getElementById('file');
-    const persistenceSlider = document.getElementById('persistence');
-    const zoomSlider = document.getElementById('zoom');
+    const canvas=document.getElementById('canvas');
+    const ctx=canvas.getContext('2d');
+    const fileInput=document.getElementById('file');
+    const persistenceSlider=document.getElementById('persistence');
+    const zoomSlider=document.getElementById('zoom');
 
     canvas.onmouseover=e=>controls.style.opacity=.3;
     controls.onmouseover=e=>controls.style.opacity=.7;
     canvas.onmouseout=controls.onmouseout=e=>controls.style.opacity=0;
 
-    let audioCtx = new (window.AudioContext || window.webkitAudioContext)();//null;
-    let sourceNode = null;
-    let splitter = null;
-    let analyserL = null, analyserR = null;
-    let dataL = null, dataR = null;
-    let rafId = null;
-    let mediaStream = null;
-    let audioElement = document.querySelector('audio');
+    const audioElement=document.querySelector('audio');
+    const audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    let rafId=null;
 
-      sourceNode = audioCtx.createMediaElementSource(audioElement);
-
-      splitter = audioCtx.createChannelSplitter(2);
-      analyserL = audioCtx.createAnalyser();
-      analyserR = audioCtx.createAnalyser();
-      analyserL.fftSize = 2048;
-      analyserR.fftSize = 2048;
-      const bufferLen = analyserL.fftSize;
-      dataL = new Float32Array(bufferLen);
-      dataR = new Float32Array(bufferLen);
+      const sourceNode=audioCtx.createMediaElementSource(audioElement);
+      const splitter=audioCtx.createChannelSplitter(2);
+      const analyserL=audioCtx.createAnalyser();
+      const analyserR=audioCtx.createAnalyser();
+      analyserL.fftSize=analyserR.fftSize=2048;
+      const bufferLen=analyserL.fftSize;
+      const dataL=new Float32Array(bufferLen);
+      const dataR=new Float32Array(bufferLen);
       sourceNode.connect(splitter);
-      splitter.connect(analyserL, 0);
-      splitter.connect(analyserR, 1);
-      const outGain = audioCtx.createGain();
-      outGain.gain.value = 1;
+      splitter.connect(analyserL,0);
+      splitter.connect(analyserR,1);
+      const outGain=audioCtx.createGain();
+      outGain.gain.value=1;
       sourceNode.connect(outGain);
       outGain.connect(audioCtx.destination);
 
-    document.body.addEventListener('click', () => {
-      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    });
+    const resume=()=>(audioCtx&&audioCtx.state==='suspended'&&audioCtx.resume());
+    document.body.addEventListener('click',resume);
 
     function createSampleNode(ctx){
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 220;
-      const merger = ctx.createChannelMerger(2);
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type='sine';
+      osc.frequency.value=220;
+      const merger=ctx.createChannelMerger(2);
       osc.connect(gain);
-      gain.gain.value = 0.5;
-      gain.connect(merger, 0, 0);
-      gain.connect(merger, 0, 1);
+      gain.gain.value=.5;
+      gain.connect(merger,0,0);
+      gain.connect(merger,0,1);
       osc.start();
-      return {node: merger, osc, gain};
+      return{node:merger,osc,gain};
     }
 
-    async function start(){
-      if(!audioCtx){
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    async function change(){
+      if(!fileInput.files[0])return;
+      URL.revokeObjectURL(audioElement.src);
+      audioElement.src=URL.createObjectURL(fileInput.files[0]);
+      try{
+        await audioElement.play();
+      }catch(e){
+        console.warn('Autoplay blocked, please click play:', e);
       }
-
-        if(!fileInput.files[0]&&!audioElement.src){ return; }
-        audioElement.src = fileInput.files[0]?URL.createObjectURL(fileInput.files[0]):audioElement.src;
-        try {
-          await audioElement.play();
-        } catch(e) {
-          console.warn('Autoplay blocked, please click play:', e);
-        }
-
-      //draw();
     }
-
+    function start(){
+      console.log(1);
+      if(rafId)cancelAnimationFrame(rafId);rafId=null;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      resume();draw();
+    }
     function stop(){
-      if(rafId) cancelAnimationFrame(rafId);
-      rafId = null;
-      if(mediaStream){ mediaStream.getTracks().forEach(t=>t.stop()); mediaStream = null; }
-      if(audioCtx){ audioCtx.close(); audioCtx = null; }
+      console.log(0);
+      if(rafId)cancelAnimationFrame(rafId);rafId=null;
       ctx.clearRect(0,0,canvas.width,canvas.height);
     }
 
     function draw(){
-      if(!analyserL || !analyserR) return;
+      if(!analyserL || !analyserR)return;
       rafId = requestAnimationFrame(draw);
       analyserL.getFloatTimeDomainData(dataL);
       analyserR.getFloatTimeDomainData(dataR);
@@ -212,24 +198,17 @@
       ctx.fillRect(-1,-1,2,2);
       ctx.restore();
     }
-
-    function computeRMS(buf){
-      let sum = 0; for(let i=0;i<buf.length;i++){ const v = buf[i]; sum += v*v; } return Math.sqrt(sum / buf.length);
-    }
-
-    fileInput.addEventListener('change',start);
-    fileInput.style.display='inline-block';
-
+    const computeRMS=b=>Math.sqrt(b.reduce((s,v)=>s+v*v,0)/b.length);
     function resizeCanvas(){
-      const ratio = 1//window.devicePixelRatio || 1; const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.round(window.innerHeight * ratio);
-      canvas.height = Math.round(window.innerHeight * ratio);
-      ctx.setTransform(ratio,0,0,ratio,0,0); ctx.fillStyle = 'rgba(2,6,11,1)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      canvas.width=canvas.height=Math.round(window.innerHeight);
+      ctx.setTransform(1,0,0,1,0,0);
     }
-    window.addEventListener('resize', resizeCanvas); resizeCanvas();
-
-    window.addEventListener('keydown', e=>{ if(e.key===' '){ e.preventDefault(); if(!audioElement.paused) audioElement.pause(); else audioElement.play(); } });
-    draw();//start()
+    window.addEventListener('resize',resizeCanvas);resizeCanvas();
+    window.addEventListener('keydown',e=>{ if(e.key===' '){ e.preventDefault();if(!audioElement.paused)audioElement.pause();else audioElement.play(); } });
+    audioElement.onplay=start;
+    audioElement.onpause=stop;
+    fileInput.onchange=change;
+    fileInput.style.display='inline-block';
   </script>
 </body>
 </html>
